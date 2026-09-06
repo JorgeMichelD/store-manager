@@ -1,5 +1,6 @@
-store_manager.db
-__pycache__/
+﻿__pycache__/
 *.pyc
-.venv/
-venv/
+build/
+dist/
+*.spec
+store_manager.db
