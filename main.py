@@ -1,33 +1,4 @@
-import sqlite3
-
-
-# =============================================
-# CONEXIÓN CON SQLITE
-# =============================================
-
-conexion = sqlite3.connect("store_manager.db")
-
-cursor = conexion.cursor()
-
-
-# =============================================
-# CREAR TABLA
-# =============================================
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS productos(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nombre TEXT NOT NULL,
-    categoria TEXT NOT NULL,
-    precio_compra REAL NOT NULL,
-    precio_venta REAL NOT NULL,
-    cantidad INTEGER NOT NULL
-)
-""")
-
-conexion.commit()
-
-
+from database import conexion, cursor
 # =============================================
 # ENCABEZADO
 # =============================================
@@ -84,6 +55,18 @@ def pedir_entero(mensaje):
 
         except ValueError:
             print("Introduzca un valor válido.")
+
+# =============================================
+# OBTENER PRODUCTO POR NOMBRE
+# =============================================
+
+def obtener_producto_por_nombre(nombre):
+
+    cursor.execute("SELECT * FROM productos WHERE LOWER(nombre) = LOWER(?)",
+                   (nombre,)
+    )
+
+    return cursor.fetchone()
 
 
 # =============================================
@@ -194,13 +177,7 @@ def buscar_producto():
     nombre_busqueda = input("Nombre del producto: ").strip()
 
 
-    cursor.execute(
-        "SELECT * FROM productos WHERE LOWER(nombre) = LOWER(?)",
-        (nombre_busqueda,)
-    )
-
-
-    producto = cursor.fetchone()
+    producto = obtener_producto_por_nombre(nombre_busqueda)
 
 
     if producto:
@@ -231,11 +208,7 @@ def modificar_producto():
 
     nombre_busqueda = input("Nombre del producto: ").strip()
 
-    cursor.execute(
-        "SELECT * FROM productos WHERE LOWER(nombre) = LOWER(?)",
-        (nombre_busqueda,)
-    )
-    producto = cursor.fetchone()
+    producto = obtener_producto_por_nombre(nombre_busqueda)
 
     if producto: 
 
@@ -389,13 +362,7 @@ def eliminar_producto():
     nombre_eliminar = input("Nombre del producto: ").strip()
 
 
-    cursor.execute(
-        "SELECT * FROM productos WHERE LOWER(nombre) = LOWER(?)",
-        (nombre_eliminar,)
-    )
-
-
-    producto = cursor.fetchone()
+    producto = obtener_producto_por_nombre(nombre_eliminar)
 
 
     if producto:
@@ -442,13 +409,7 @@ def registrar_venta():
             break
 
 
-    cursor.execute(
-        "SELECT * FROM productos WHERE LOWER(nombre) = LOWER(?)",
-        (nombre_venta,)
-    )
-
-
-    producto = cursor.fetchone()
+    producto = obtener_producto_por_nombre(nombre_venta)
 
 
     if producto:
