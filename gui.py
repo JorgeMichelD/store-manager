@@ -510,9 +510,9 @@ def ver_historial_ventas():
     ventana_historial = tk.Toplevel(ventana)
 
     ventana_historial.title("Historial de ventas")
-    ventana_historial.geometry("1000x550")
+    ventana_historial.geometry("1000x600")
     ventana_historial.configure(bg=COLOR_FONDO)
-    ventana_historial.minsize(900, 450)
+    ventana_historial.minsize(900, 500)
 
     # =============================================
     # TÍTULO
@@ -528,11 +528,55 @@ def ver_historial_ventas():
 
     tk.Label(
         ventana_historial,
-        text="Registro de todas las ventas realizadas",
+        text="Consulta y resumen de ventas",
         bg=COLOR_FONDO,
         fg="#333333",
         font=("Arial", 10)
-    ).pack(pady=(0, 15))
+    ).pack(pady=(0, 10))
+
+    # =============================================
+    # FILTROS
+    # =============================================
+
+    marco_filtros = tk.Frame(
+        ventana_historial,
+        bg=COLOR_FONDO
+    )
+
+    marco_filtros.pack(
+        fill="x",
+        padx=15,
+        pady=(0, 10)
+    )
+
+    tk.Label(
+        marco_filtros,
+        text="Mostrar:",
+        bg=COLOR_FONDO,
+        fg=COLOR_ROJO,
+        font=("Arial", 10, "bold")
+    ).pack(side="left", padx=(0, 10))
+
+    filtro_periodo = tk.StringVar(
+        value="Todas"
+    )
+
+    opciones_periodo = [
+        "Todas",
+        "Hoy",
+        "Esta semana",
+        "Este mes"
+    ]
+
+    selector_periodo = ttk.Combobox(
+        marco_filtros,
+        textvariable=filtro_periodo,
+        values=opciones_periodo,
+        state="readonly",
+        width=18
+    )
+
+    selector_periodo.pack(side="left")
 
     # =============================================
     # CONTENEDOR DE LA TABLA
@@ -570,48 +614,13 @@ def ver_historial_ventas():
         show="headings"
     )
 
-    # =============================================
-    # ENCABEZADOS
-    # =============================================
-
-    tabla_historial.heading(
-        "fecha",
-        text="Fecha"
-    )
-
-    tabla_historial.heading(
-        "producto",
-        text="Producto"
-    )
-
-    tabla_historial.heading(
-        "cantidad",
-        text="Cantidad"
-    )
-
-    tabla_historial.heading(
-        "compra",
-        text="Precio compra"
-    )
-
-    tabla_historial.heading(
-        "venta",
-        text="Precio venta"
-    )
-
-    tabla_historial.heading(
-        "total",
-        text="Total venta"
-    )
-
-    tabla_historial.heading(
-        "ganancia",
-        text="Ganancia"
-    )
-
-    # =============================================
-    # ANCHOS
-    # =============================================
+    tabla_historial.heading("fecha", text="Fecha")
+    tabla_historial.heading("producto", text="Producto")
+    tabla_historial.heading("cantidad", text="Cantidad")
+    tabla_historial.heading("compra", text="Precio compra")
+    tabla_historial.heading("venta", text="Precio venta")
+    tabla_historial.heading("total", text="Total vendido")
+    tabla_historial.heading("ganancia", text="Ganancia")
 
     tabla_historial.column(
         "fecha",
@@ -680,69 +689,7 @@ def ver_historial_ventas():
     )
 
     # =============================================
-    # CONSULTAR VENTAS
-    # =============================================
-
-    cursor.execute("""
-        SELECT
-            fecha,
-            producto_nombre,
-            cantidad,
-            precio_compra,
-            precio_venta,
-            total,
-            ganancia
-        FROM ventas
-        ORDER BY id DESC
-    """)
-
-    ventas = cursor.fetchall()
-
-    # =============================================
-    # MOSTRAR VENTAS
-    # =============================================
-
-    for venta in ventas:
-
-        fecha = venta[0]
-        producto = venta[1]
-        cantidad = venta[2]
-        precio_compra = venta[3]
-        precio_venta = venta[4]
-        total = venta[5]
-        ganancia = venta[6]
-
-        tabla_historial.insert(
-            "",
-            tk.END,
-            values=(
-                fecha,
-                producto,
-                cantidad,
-                f"Bs {precio_compra:.2f}",
-                f"Bs {precio_venta:.2f}",
-                f"Bs {total:.2f}",
-                f"Bs {ganancia:.2f}"
-            )
-        )
-
-    # =============================================
-    # RESUMEN DE VENTAS
-    # =============================================
-
-    cursor.execute("""
-        SELECT
-            COUNT(*),
-            COALESCE(SUM(cantidad), 0),
-            COALESCE(SUM(total), 0),
-            COALESCE(SUM(ganancia), 0)
-        FROM ventas
-    """)
-
-    cantidad_ventas, unidades_vendidas, total_ventas, ganancia_total = cursor.fetchone()
-
-    # =============================================
-    # RESUMEN INFERIOR
+    # RESUMEN
     # =============================================
 
     marco_resumen = tk.Frame(
@@ -761,12 +708,7 @@ def ver_historial_ventas():
 
     etiqueta_resumen_ventas = tk.Label(
         marco_resumen,
-        text=(
-            f"Ventas: {cantidad_ventas}    "
-            f"Unidades vendidas: {unidades_vendidas}    "
-            f"Total: Bs {total_ventas:.2f}    "
-            f"Ganancia: Bs {ganancia_total:.2f}"
-        ),
+        text="",
         bg=COLOR_ROJO,
         fg="white",
         font=("Arial", 10, "bold")
@@ -776,6 +718,179 @@ def ver_historial_ventas():
         side="left",
         padx=15,
         pady=15
+    )
+
+    # =============================================
+    # FUNCIÓN PARA CARGAR LAS VENTAS
+    # =============================================
+
+    def cargar_historial():
+
+        # Limpiar tabla antes de cargar nuevos datos
+        for item in tabla_historial.get_children():
+            tabla_historial.delete(item)
+
+        periodo = filtro_periodo.get()
+
+        # =========================================
+        # CONSULTA SEGÚN EL PERÍODO
+        # =========================================
+
+        if periodo == "Hoy":
+
+            consulta = """
+                SELECT
+                    fecha,
+                    producto_nombre,
+                    cantidad,
+                    precio_compra,
+                    precio_venta,
+                    total,
+                    ganancia
+                FROM ventas
+                WHERE DATE(fecha) = DATE('now', 'localtime')
+                ORDER BY id DESC
+            """
+
+            cursor.execute(consulta)
+
+        elif periodo == "Esta semana":
+
+            consulta = """
+                SELECT
+                    fecha,
+                    producto_nombre,
+                    cantidad,
+                    precio_compra,
+                    precio_venta,
+                    total,
+                    ganancia
+                FROM ventas
+                WHERE DATE(fecha) >= DATE(
+                    'now',
+                    'localtime',
+                    'weekday 0',
+                    '-6 days'
+                )
+                AND DATE(fecha) <= DATE(
+                    'now',
+                    'localtime'
+                )
+                ORDER BY id DESC
+            """
+
+            cursor.execute(consulta)
+
+        elif periodo == "Este mes":
+
+            consulta = """
+                SELECT
+                    fecha,
+                    producto_nombre,
+                    cantidad,
+                    precio_compra,
+                    precio_venta,
+                    total,
+                    ganancia
+                FROM ventas
+                WHERE strftime(
+                    '%Y-%m',
+                    fecha,
+                    'localtime'
+                ) = strftime(
+                    '%Y-%m',
+                    'now',
+                    'localtime'
+                )
+                ORDER BY id DESC
+            """
+
+            cursor.execute(consulta)
+
+        else:
+
+            consulta = """
+                SELECT
+                    fecha,
+                    producto_nombre,
+                    cantidad,
+                    precio_compra,
+                    precio_venta,
+                    total,
+                    ganancia
+                FROM ventas
+                ORDER BY id DESC
+            """
+
+            cursor.execute(consulta)
+
+        ventas = cursor.fetchall()
+
+        # =========================================
+        # MOSTRAR VENTAS
+        # =========================================
+
+        for venta in ventas:
+
+            fecha = venta[0]
+            producto = venta[1]
+            cantidad = venta[2]
+            precio_compra = venta[3]
+            precio_venta = venta[4]
+            total = venta[5]
+            ganancia = venta[6]
+
+            tabla_historial.insert(
+                "",
+                tk.END,
+                values=(
+                    fecha,
+                    producto,
+                    cantidad,
+                    f"Bs {precio_compra:.2f}",
+                    f"Bs {precio_venta:.2f}",
+                    f"Bs {total:.2f}",
+                    f"Bs {ganancia:.2f}"
+                )
+            )
+
+        # =========================================
+        # CALCULAR RESUMEN
+        # =========================================
+
+        numero_ventas = len(ventas)
+
+        unidades_vendidas = sum(
+            venta[2]
+            for venta in ventas
+        )
+
+        total_vendido = sum(
+            venta[5]
+            for venta in ventas
+        )
+
+        ganancia_total = sum(
+            venta[6]
+            for venta in ventas
+        )
+
+        etiqueta_resumen_ventas.config(
+            text=(
+                f"Ventas: {numero_ventas}    "
+                f"Unidades vendidas: {unidades_vendidas}    "
+                f"Total vendido: Bs {total_vendido:.2f}    "
+                f"Ganancia: Bs {ganancia_total:.2f}"
+            )
+        )
+
+    # =============================================
+    # ACTUALIZAR AL CAMBIAR EL FILTRO
+    # =============================================
+
+    selector_periodo.bind(
+        "<<ComboboxSelected>>",
+        lambda event: cargar_historial()
     )
 
     # =============================================
@@ -794,6 +909,14 @@ def ver_historial_ventas():
         padx=10,
         pady=8
     )
+
+    # =============================================
+    # CARGAR HISTORIAL INICIAL
+    # =============================================
+
+    cargar_historial()
+
+
 
 def actualizar_inventario():
     cursor.execute("""
