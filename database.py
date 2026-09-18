@@ -28,6 +28,20 @@ CREATE TABLE IF NOT EXISTS productos(
 
 
 # =============================================
+# ACTUALIZAR ESTRUCTURA DE PRODUCTOS
+# =============================================
+
+cursor.execute("PRAGMA table_info(productos)")
+columnas_productos = [columna[1] for columna in cursor.fetchall()]
+
+if "codigo_barras" not in columnas_productos:
+    cursor.execute("""
+        ALTER TABLE productos
+        ADD COLUMN codigo_barras TEXT
+    """)
+
+
+# =============================================
 # CREAR TABLA DE VENTAS
 # =============================================
 
